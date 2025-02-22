@@ -41,6 +41,7 @@ public class MythologicalRitual {
         warpMap.put(new Vec3d(42, 122, 69), "tower");
         warpMap.put(new Vec3d(-2, 70, -69), "hub");
         warpMap.put(new Vec3d(-161, 61, -99), "crypt");
+        warpMap.put(new Vec3d(-75, 76, 80), "museum");
     }
 
     public static void init() {
