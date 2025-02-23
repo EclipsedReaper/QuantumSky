@@ -3,13 +3,13 @@
 	"id": "quantumsky",
 	"version": "${version}",
 	"name": "QuantumSky",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Useful utilities for Hypixel Skyblock",
 	"authors": [
-		"Me!"
+		"EclipsedReaper"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/EclipsedReaper/QuantumSky",
+		"sources": "https://github.com/EclipsedReaper/QuantumSky"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/quantumsky/icon.png",

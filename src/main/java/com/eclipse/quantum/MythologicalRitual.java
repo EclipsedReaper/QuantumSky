@@ -1,5 +1,6 @@
 package com.eclipse.quantum;
 
+import com.eclipse.quantum.config.Config;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.message.LastSeenMessageList;
@@ -30,13 +31,9 @@ public class MythologicalRitual {
     private static Vec3d lastFoundFireworkParticle = new Vec3d(0, 0, 0);
     private static Vec3d lastFoundDrippingLavaParticle = new Vec3d(0, 0, 0);
 
-    // Toggleable auto-warp feature.
-    private static boolean autoWarpEnabled = false;
-    // Map of warp points; populate this with your Vec3d's and associated warp names.
     private static Map<Vec3d, String> warpMap = new HashMap<>();
 
     static {
-        // Example warp points. Replace or add entries as desired.
         warpMap.put(new Vec3d(-250, 130, 45), "castle");
         warpMap.put(new Vec3d(42, 122, 69), "tower");
         warpMap.put(new Vec3d(-2, 70, -69), "hub");
@@ -65,20 +62,12 @@ public class MythologicalRitual {
         lastFoundDrippingLavaParticle = new Vec3d(0, 0, 0);
     }
 
-    public static void toggleAutoWarp() {
-        autoWarpEnabled = !autoWarpEnabled;
-    }
-
-    public static boolean isAutoWarpActive() {
-        return autoWarpEnabled;
-    }
-
     public static void onParticle(ParticleS2CPacket packet) {
         if (vectors == null) {
             vectors = new ArrayList<>();
             vectors.add(new ArrayList<>());
         }
-        if (!QuantumSky.isMythologicalRitualActive || tempDisable) return;
+        if (!Config.isDianaHelperActive() || tempDisable) return;
         switch (packet.getParameters().getType()) {
             case ParticleType<?> type when type.equals(ParticleTypes.FIREWORK):
                 lastFoundFireworkParticle = new Vec3d(packet.getX(), packet.getY(), packet.getZ());
@@ -158,7 +147,6 @@ public class MythologicalRitual {
         List<Vec3d> lineStarts = new ArrayList<>();
         List<Vec3d> lineDirs = new ArrayList<>();
 
-        // Convert each pair of Vec3d's to a starting point and a normalized 2D direction using X and Z.
         for (List<Vec3d> vectorList : vectors) {
             if (vectorList.size() != 2) {
                 continue;
@@ -174,7 +162,6 @@ public class MythologicalRitual {
                 throw new IllegalArgumentException("[QuantumSky] Failed to calculate waypoint: Input points are the same.");
             }
 
-            // Normalize the direction (using X and Z only) and set Y to 0.
             Vec3d dir = new Vec3d(dx / magnitude, 0, dz / magnitude);
             lineStarts.add(A);
             lineDirs.add(dir);
@@ -185,16 +172,13 @@ public class MythologicalRitual {
             return;
         }
 
-        // Calculate the intersection of the first two lines.
         Vec3d intersection = findIntersectionXZ(lineStarts.get(0), lineDirs.get(0), lineStarts.get(1), lineDirs.get(1));
 
-        // Retrieve the original echo points from the vectors list.
         Vec3d firstA = vectors.get(0).get(0);
         Vec3d firstB = vectors.get(0).get(1);
         Vec3d secondA = vectors.get(1).get(0);
         Vec3d secondB = vectors.get(1).get(1);
 
-        // Check that the intersection is closer to the second particle (B) than the first (A) for both echoes.
         if (intersection.distanceTo(firstB) >= intersection.distanceTo(firstA) ||
                 intersection.distanceTo(secondB) >= intersection.distanceTo(secondA)) {
             System.err.println("[QuantumSky] Error: Incorrect burrow triangulation. Intersection is not closer to second echo than first.");
@@ -203,20 +187,17 @@ public class MythologicalRitual {
 
         QuantumSky.burrowWaypoint = intersection;
 
-        // If auto-warp is enabled, compare the intersection to the warp points and player's position.
-        if (autoWarpEnabled) {
+        if (Config.isDianaAutoWarpActive()) {
             warpIfNeeded(intersection);
         }
     }
 
     private static Vec3d findIntersectionXZ(Vec3d pos1, Vec3d dir1, Vec3d pos2, Vec3d dir2) {
-        // Compute the denominator using X and Z components.
         double denominator = (dir1.x * dir2.z - dir1.z * dir2.x);
         if (Math.abs(denominator) < 1e-6) {
             throw new IllegalArgumentException("[QuantumSky] Failed to calculate line intersection for waypoint: Input lines are parallel.");
         }
 
-        // Solve for t along the first line.
         double t1 = ((pos2.x - pos1.x) * dir2.z - (pos2.z - pos1.z) * dir2.x) / denominator;
         double intersectX = pos1.x + t1 * dir1.x;
         double intersectZ = pos1.z + t1 * dir1.z;
@@ -239,16 +220,15 @@ public class MythologicalRitual {
             }
         }
 
-        // If the closest warp point is nearer than the player, auto-warp.
         if (minWarpDistance < playerDistance) {
             Random random = new Random();
             client.player.networkHandler.sendPacket(
                     new ChatMessageC2SPacket(
-                            "/warp " + warpName,                           // chat command
-                            Instant.now(),                    // current timestamp
-                            random.nextLong(), // random salt
-                            null,                             // no message signature
-                            new LastSeenMessageList.Acknowledgment(0, new BitSet()) // updated acknowledgment
+                            "/warp " + warpName,
+                            Instant.now(),
+                            random.nextLong(),
+                            null,
+                            new LastSeenMessageList.Acknowledgment(0, new BitSet())
                     )
             );
             System.out.println("[QuantumSky] Auto-warping to " + warpName);
@@ -256,11 +236,11 @@ public class MythologicalRitual {
     }
 
     private static void onChatMessage(Text message, boolean overlay) {
-        if (message.getString().contains("You dug out a Griffin Burrow!") && QuantumSky.isMythologicalRitualActive) {
+        if (message.getString().contains("You dug out a Griffin Burrow!") && Config.isDianaHelperActive()) {
             foundFirstBurrow = true;
             reset();
         }
-        if (message.getString().contains("You finished the Griffin burrow chain!") && QuantumSky.isMythologicalRitualActive) {
+        if (message.getString().contains("You finished the Griffin burrow chain!") && Config.isDianaHelperActive()) {
             reset();
             foundFirstBurrow = false;
         }

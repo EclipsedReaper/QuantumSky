@@ -1,13 +1,16 @@
 package com.eclipse.quantum;
 
+import com.eclipse.quantum.config.Config;
 import net.fabricmc.api.ClientModInitializer;
 
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
+import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,10 +21,9 @@ public class QuantumSky implements ClientModInitializer {
 	public static final String MOD_ID = "quantumsky";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	public static KeyBinding modMenuKey;
 
 	public static Vec3d burrowWaypoint = null;
-
-	public static boolean isMythologicalRitualActive = false;
 
 	@Override
 	public void onInitializeClient() {
@@ -32,8 +34,8 @@ public class QuantumSky implements ClientModInitializer {
 							.then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("diana")
 									.then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("autoWarp")
 											.executes(context -> {
-												MythologicalRitual.toggleAutoWarp();
-												context.getSource().sendFeedback(Text.literal("[§dQuantum§bSky§r] " + (MythologicalRitual.isAutoWarpActive() ? "§aEnabled" : "§cDisabled") + " §bAuto Warp for Mythological Ritual."));
+												Config.toggleDianaAutoWarp();
+												context.getSource().sendFeedback(Text.literal("[§dQuantum§bSky§r] " + (Config.isDianaAutoWarpActive() ? "§aEnabled" : "§cDisabled") + " §bAuto Warp for Mythological Ritual."));
 												return 1;
 											}))
 									.then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("reset")
@@ -45,14 +47,21 @@ public class QuantumSky implements ClientModInitializer {
 											}))
 									.then(net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal("toggle")
 											.executes(context -> {
-												isMythologicalRitualActive = !isMythologicalRitualActive;
-												if (isMythologicalRitualActive) {
+												Config.toggleDianaHelper();
+												if (Config.isDianaHelperActive()) {
 													MythologicalRitual.init();
 												}
-												context.getSource().sendFeedback(Text.literal("[§dQuantum§bSky§r] " + (isMythologicalRitualActive ? "§aEnabled" : "§cDisabled") + " §bMythological Ritual Helper."));
+												context.getSource().sendFeedback(Text.literal("[§dQuantum§bSky§r] " + (Config.isDianaHelperActive() ? "§aEnabled" : "§cDisabled") + " §bMythological Ritual Helper."));
 												return 1;
 											})))
 			);
+		});
+
+		modMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.quantumsky.modmenu", GLFW.GLFW_KEY_M, "category.quantumsky"));
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			while (modMenuKey.wasPressed()) {
+				client.setScreen(new QuantumSkyModMenuScreen(client.currentScreen));
+			}
 		});
 
 		// Render our beacon beam overlay (using vanilla beam code) if a burrowWaypoint exists.
